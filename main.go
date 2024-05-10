@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"sync"
+	"sync/atomic"
 )
 
 type Client struct {
@@ -13,8 +15,9 @@ type Client struct {
 }
 
 var (
-	clients   []*Client
-	clientsMu sync.Mutex
+	clients       []*Client
+	clientsMu     sync.Mutex
+	clientCounter int32 // Using int32 for atomic operations
 )
 
 func main() {
@@ -42,9 +45,12 @@ func handleConnection(conn net.Conn) {
 	// Add client to the list
 	client := &Client{
 		conn: conn,
+		name: "Client " + strconv.Itoa(int(atomic.AddInt32(&clientCounter, 1))),
 	}
 	addClient(client)
 	defer removeClient(client)
+
+	fmt.Fprintf(conn, "You are %s\n", client.name)
 
 	buf := make([]byte, 1024)
 	for {
